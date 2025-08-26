@@ -1,3 +1,3 @@
 from .gsm8k import GSM8KSyntaxBench
-from .math import MATHSyntaxBench
+from .math500 import MATH500SyntaxBench
 from .union import UnionSyntaxBench

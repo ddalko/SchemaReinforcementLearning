@@ -1,0 +1,11 @@
+.devcontainer/
+.vscode/
+__pycache__/
+
+# ignore CodeLinker config
+*.toml
+
+# ignore data and result
+schemabench/data/
+schemabench/results/
+train/data/

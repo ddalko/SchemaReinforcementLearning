@@ -1,4 +1,15 @@
-json5
+json5==0.9.25
 jsonschema
 transformers
 vllm
+
+fire
+codelinker
+jsonlines
+datasets
+colorlog
+tomli_w
+tomli
+xmltodict
+python-hcl2
+json2html

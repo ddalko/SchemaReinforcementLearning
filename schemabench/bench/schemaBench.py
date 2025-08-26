@@ -40,13 +40,13 @@ class SchemaBench(BaseSyntaxBench):
     
 
 class ComplexSchemaBench(SchemaBench):
-    def __init__(self, subset: bool = True):
+    def __init__(self, subset: bool = True, subset_size: int = 100):
         super().__init__(_type="schema")
 
         self.subset = subset
         if subset:
             random.seed(int(os.environ.get("BENCHMARK_SUBSET_SEED", 42)))
-            self.schemas = random.sample(self.schemas, 100)
+            self.schemas = random.sample(self.schemas, subset_size)
     
     def validate(self, pred, ans, custom_object):
         return True

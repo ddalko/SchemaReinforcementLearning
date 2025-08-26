@@ -15,7 +15,7 @@ from typing import Any, Callable, Coroutine
 import random
 
 class UnionSyntaxBench(BaseSyntaxBench):
-    def __init__(self, n_shots: int = 3, subset: bool = True, test_category: str = "all"):
+    def __init__(self, n_shots: int = 3, subset: bool = True, test_category: str = "all", debug: bool = False):
         super().__init__(n_shots)
         allbenches = {
             "MATH500": MATH500SyntaxBench,
@@ -26,6 +26,11 @@ class UnionSyntaxBench(BaseSyntaxBench):
             "CUSTOM": CustomFormatBench, # combined
             "ESCAPE": TranslationBench,
         }
+        if debug:
+            self.subbenches = {
+                "COMPLEX": ComplexSchemaBench(subset=subset, subset_size=5),
+            }
+            return
         if test_category == "all":
             self.subbenches = allbenches
         elif test_category == "schema":

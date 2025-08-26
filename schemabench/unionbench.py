@@ -11,7 +11,8 @@ def main(
     temperature: float = 0.0,
     seed: int = 42,
     subset: bool = True, 
-    test_category: str = "all"
+    test_category: str = "all",
+    debug: bool = False,
 ):
     cl = codelinker.CodeLinker(codelinker.CodeLinkerConfig.from_toml(os.environ.get("CODELINKER_CONFIG", "private.toml")))
     sem = asyncio.Semaphore(int(os.environ.get("CONCURRENCY", 32)))
@@ -26,7 +27,7 @@ def main(
         async with sem:
             return await cl.exec(messages=messages, model=model, completions_kwargs={"temperature": temperature, "seed": seed, "max_tokens": 2048})
 
-    bench = UnionSyntaxBench(n_shots=n, subset=subset, test_category=test_category)
+    bench = UnionSyntaxBench(n_shots=n, subset=subset, test_category=test_category, debug=debug)
     # bench = MATHSyntaxBench(subset=False)
     # print(len(bench))
     # exit()
