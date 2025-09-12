@@ -9,3 +9,10 @@ __pycache__/
 schemabench/data/
 schemabench/results/
 train/data/
+train/results/
+
+# wandb
+wandb/
+
+# huggingface cache
+.cache/

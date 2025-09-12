@@ -15,7 +15,7 @@ from typing import Any, Callable, Coroutine
 import random
 
 class UnionSyntaxBench(BaseSyntaxBench):
-    def __init__(self, n_shots: int = 3, subset: bool = True, test_category: str = "all", debug: bool = False):
+    def __init__(self, n_shots: int = 3, subset: bool = True, test_category: str = "all", max_schema_length: int = -1, debug: bool = False):
         super().__init__(n_shots)
         allbenches = {
             "MATH500": MATH500SyntaxBench,
@@ -23,21 +23,41 @@ class UnionSyntaxBench(BaseSyntaxBench):
             "ARC": ARCTester,
             "GSM8K": GSM8KSyntaxBench,
             "COMPLEX": ComplexSchemaBench,
-            "CUSTOM": CustomFormatBench, # combined
+            "CUSTOM": CustomFormatBench,
             "ESCAPE": TranslationBench,
         }
         if debug:
             self.subbenches = {
-                "COMPLEX": ComplexSchemaBench(subset=subset, subset_size=5),
+                "COMPLEX": ComplexSchemaBench(subset=subset, subset_size=5, max_schema_length=max_schema_length),
             }
             return
         if test_category == "all":
-            self.subbenches = allbenches
-        elif test_category == "schema":
             self.subbenches = {
+                "MATH500": MATH500SyntaxBench(subset=subset),
+                "MMLU": MMLUSyntaxBench(subset=subset),
+                "ARC": ARCTester(subset=subset),
+                "GSM8K": GSM8KSyntaxBench(subset=subset),
                 "COMPLEX": ComplexSchemaBench(subset=subset),
                 "CUSTOM": CustomFormatBench(subset=subset),
                 "ESCAPE": TranslationBench(subset=subset),
+            }
+        elif test_category == "schema_complex":
+            self.subbenches = {
+                "COMPLEX": ComplexSchemaBench(subset=subset)
+            }
+        elif test_category == "schema_custom":
+            self.subbenches = {
+                "CUSTOM": CustomFormatBench(subset=subset)
+            }
+        elif test_category == "schema_escape":
+            self.subbenches = {
+                "ESCAPE": TranslationBench(subset=subset)
+            }
+        elif test_category == "schema":
+            self.subbenches = {
+                "COMPLEX": ComplexSchemaBench(subset=subset, max_schema_length=max_schema_length),
+                "CUSTOM": CustomFormatBench(subset=subset, max_schema_length=max_schema_length),
+                "ESCAPE": TranslationBench(subset=subset, max_schema_length=max_schema_length),
             }
         elif test_category == "reasoning":
             self.subbenches = {

@@ -12,7 +12,6 @@ class GSM8KSyntaxBench(BaseSyntaxBench):
             "openai/gsm8k",
             "main",
             split="test",
-            trust_remote_code=True,
             cache_dir=".cache",
         )
         self.subset = subset

@@ -40,12 +40,15 @@ class SchemaBench(BaseSyntaxBench):
     
 
 class ComplexSchemaBench(SchemaBench):
-    def __init__(self, subset: bool = True, subset_size: int = 100):
+    def __init__(self, subset: bool = True, subset_size: int = 100, max_schema_length: int = -1):
         super().__init__(_type="schema")
 
         self.subset = subset
         if subset:
             random.seed(int(os.environ.get("BENCHMARK_SUBSET_SEED", 42)))
+            if max_schema_length > 0:
+                self.schemas = [s for s in self.schemas if len(json.dumps(s)) <= max_schema_length]
+
             self.schemas = random.sample(self.schemas, subset_size)
     
     def validate(self, pred, ans, custom_object):
@@ -271,7 +274,7 @@ CONSTRAINT_MAP = {
 CONSTRAINT_NUM = 5
 
 class CustomFormatBench(SchemaBench):
-    def __init__(self, subset: bool = True):
+    def __init__(self, subset: bool = True, max_schema_length: int = -1):
         super().__init__(_type="custom")
 
         self.dataset = []
@@ -315,6 +318,8 @@ class CustomFormatBench(SchemaBench):
         self.subset = subset
         if subset:
             random.seed(int(os.environ.get("BENCHMARK_SUBSET_SEED", 42)))
+            if max_schema_length > 0:
+                self.dataset = [s for s in self.dataset if len(json.dumps(s['model_schema'])) <= max_schema_length]
             self.dataset = random.sample(self.dataset, 100)
     
     def __len__(self):
@@ -340,7 +345,7 @@ class CustomFormatBench(SchemaBench):
         return q
 
 class TranslationBench(BaseSyntaxBench):
-    def __init__(self, subset: bool = True):
+    def __init__(self, subset: bool = True, max_schema_length: int = -1):
         super().__init__(None, 0)
 
         self.dataset = []
@@ -356,6 +361,8 @@ class TranslationBench(BaseSyntaxBench):
         self.subset = subset
         if subset:
             random.seed(int(os.environ.get("BENCHMARK_SUBSET_SEED", 42)))
+            if max_schema_length > 0:
+                self.dataset = [s for s in self.dataset if len(json.dumps(s['model_schema'])) <= max_schema_length]
             self.dataset = random.sample(self.dataset, 100)
         
         self.json_parser = self.parser.get("CodeBlockJsonParser")

@@ -1,7 +1,12 @@
 import json
+import re
+from typing import Any, Set
+
 
 from tqdm import tqdm
 from transformers import AutoTokenizer
+
+from filter_utils import project_schema_to_gt
 
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 if tokenizer.eos_token is None or tokenizer.eos_token != "<|endoftext|>":
@@ -16,6 +21,42 @@ ROLE_PREFIX = {
     "assistant": "### Assistant:\n",
 }
 EOS = tokenizer.encode(tokenizer.eos_token)[0]
+CODEBLOCK_SCHEMA_RE = re.compile(r"```json\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
+
+def extract_schema_json(text: str) -> dict:
+    """
+    ```json ... ``` 코드블록 안의 첫 번째 JSON을 스키마로 파싱
+    """
+    m = CODEBLOCK_SCHEMA_RE.search(text)
+    schema_str = m.group(1).strip()
+    try:
+        return json.loads(schema_str)
+    except json.JSONDecodeError as e:
+        print(f"코드블록 내 JSON 파싱 실패: {e}\n")
+        return None
+
+def replace_first_json_codeblock(text: str, obj: dict) -> str:
+    new_json_str = json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
+    pattern = re.compile(r"(```json\s*)(.*?)(\s*```)", re.IGNORECASE | re.DOTALL)
+    def repl(m):
+        return f"{m.group(1)}{new_json_str}{m.group(3)}"
+    return pattern.sub(repl, text, count=1)
+
+def remove_keys_recursive(obj: Any, remove_keys: Set[str] = {"$schema", "$ref", "$id", "required"}) -> Any:
+    """obj 내 모든 dict에서 remove_keys를 제거한 '새 객체'를 반환."""
+    if isinstance(obj, dict):
+        return {
+            k: remove_keys_recursive(v, remove_keys)
+            for k, v in obj.items()
+            if k not in remove_keys
+        }
+    elif isinstance(obj, list):
+        return [remove_keys_recursive(x, remove_keys) for x in obj]
+    elif isinstance(obj, tuple):
+        return tuple(remove_keys_recursive(x, remove_keys) for x in obj)
+    # str / int / float / bool / None 등은 그대로
+    return obj
+
 
 def render_messages_for_gpt2(messages):
     """
@@ -33,6 +74,8 @@ def render_messages_for_gpt2(messages):
         role = m["role"].lower()
         content = m.get("content", "")
         prefix = ROLE_PREFIX.get(role, f"### {role.capitalize()}:\n")
+        if role == "assistant":
+            content = content.replace(' ', '').replace('\n', '') # TODO: 빈 칸은 1개로 줄이기
         seg_text = prefix + content.strip() + "\n\n"
         parts.append(seg_text)
         start = cursor
@@ -43,16 +86,23 @@ def render_messages_for_gpt2(messages):
     text = "".join(parts)
     return text, segments
 
-data_p = "train/data/mix_train_no_collected_json.json"
+data_p = "train/data/mix_train.json"
 with open(data_p, "r") as jfd:
     data = json.load(jfd)
 
 preprocessed_data = []
+data = [item for item in data if '```json\n{\"$schema' in item['messages'][1]['content']]
 for i in tqdm(range(len(data)), desc="Preprocessing dataset"):
     messages = data[i]["messages"]
-    if "```json\n{\"$schema" not in messages[1]['content']:
-        continue
     text, segs = render_messages_for_gpt2(messages)
+    text = re.sub(r'(?m)^### System:\s*(\r?\n)*', '', text, count=1)
+
+    schema_json = extract_schema_json(text)
+    if not schema_json:
+        continue
+    gt = json.loads(text[segs[2][0]:segs[2][1]])
+    minimal = project_schema_to_gt(schema_json, gt)
+    text = replace_first_json_codeblock(text, minimal)
 
     tokens = tokenizer(text, add_special_tokens=False, return_attention_mask=False, return_token_type_ids=False)
     tokens['input_ids'].append(EOS)
@@ -60,8 +110,12 @@ for i in tqdm(range(len(data)), desc="Preprocessing dataset"):
     if len(tokens['input_ids']) > 1024:
         continue
 
-    preprocessed_data.append({"text": text})
+    cut_point = text.find('### Assistant')
+    prompt = text[:cut_point].rstrip() + '\n'
+
+    preprocessed_data.append({"text": text, "prompt": prompt})
 
 filtered_data_p = "train/data/chat_templated_jsonschema_dataset_max1024.json"
+print(f"Filtered {len(preprocessed_data)} samples from {len(data)}")
 with open(filtered_data_p, "w", encoding="utf-8") as f:
     json.dump(preprocessed_data, f, ensure_ascii=False, indent=2)

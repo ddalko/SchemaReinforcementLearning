@@ -22,7 +22,6 @@ class ARCTester(BaseSyntaxBench):
             "allenai/ai2_arc",
             "ARC-Challenge",
             split=os.getenv("BENCHMARK_SPLIT", "test"),
-            trust_remote_code=True,
             cache_dir=".cache",
         )
         

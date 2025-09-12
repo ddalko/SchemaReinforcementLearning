@@ -1,5 +1,6 @@
 import os
 import fire
+import json
 import asyncio
 import codelinker
 from bench import UnionSyntaxBench
@@ -12,6 +13,7 @@ def main(
     seed: int = 42,
     subset: bool = True, 
     test_category: str = "all",
+    max_schema_length: int = -1,
     debug: bool = False,
 ):
     cl = codelinker.CodeLinker(codelinker.CodeLinkerConfig.from_toml(os.environ.get("CODELINKER_CONFIG", "private.toml")))
@@ -27,7 +29,7 @@ def main(
         async with sem:
             return await cl.exec(messages=messages, model=model, completions_kwargs={"temperature": temperature, "seed": seed, "max_tokens": 2048})
 
-    bench = UnionSyntaxBench(n_shots=n, subset=subset, test_category=test_category, debug=debug)
+    bench = UnionSyntaxBench(n_shots=n, subset=subset, test_category=test_category, max_schema_length=max_schema_length, debug=debug)
     # bench = MATHSyntaxBench(subset=False)
     # print(len(bench))
     # exit()

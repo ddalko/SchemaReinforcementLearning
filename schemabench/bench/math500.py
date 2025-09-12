@@ -11,7 +11,6 @@ class MATH500SyntaxBench(BaseSyntaxBench):
         self.dataset = datasets.load_dataset(
             "HuggingFaceH4/MATH-500",
             split=os.getenv("BENCHMARK_SPLIT", "test"),
-            trust_remote_code=True,
             cache_dir=".cache",
         )
         

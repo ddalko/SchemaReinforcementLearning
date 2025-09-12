@@ -1,0 +1,9 @@
+python train/sft/trl_mix_llada.py \
+    --model_name models/LLaDA-8B-Instruct \
+    --data_file ../data/mix_train.json \
+    --output_dir ../results/LLaDA-8B-sft \
+    --num_train_epochs 1 \
+    --per_device_train_batch_size 1 \
+    --gradient_accumulation_steps 8 \
+    --learning_rate 1e-5 \
+    --max_seq_length 8192 \

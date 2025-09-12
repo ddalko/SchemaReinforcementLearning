@@ -112,7 +112,7 @@ class BenchItem:
 
 
 class BaseSyntaxBench:
-    def __init__(self, nlparser: SyntaxParser.BasicParser, n_shots: int = 3,):
+    def __init__(self, nlparser: SyntaxParser.BasicParser, n_shots: int = 1,):
         
         self.nlparser = nlparser
         self.dataset: datasets.Dataset = None

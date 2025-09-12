@@ -1,5 +1,5 @@
-from trl import SFTConfig, SFTTrainer, DataCollatorForCompletionOnlyLM
-from datasets import Dataset, load_dataset
+from trl import SFTConfig, SFTTrainer
+from datasets import Dataset 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import json, random
 from transformers import (
@@ -243,7 +243,7 @@ if __name__ == '__main__':
         save_steps=1000,
         max_seq_length=args.max_seq_length,
         bf16=True,
-        deepspeed="ds_z3_config.json", # from LLaMA-Factory
+        deepspeed="train/sft/ds_z3_config.json", # from LLaMA-Factory
     )
 
     trainer = SFTTrainer(
