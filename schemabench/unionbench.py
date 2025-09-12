@@ -5,6 +5,17 @@ import asyncio
 import codelinker
 from bench import UnionSyntaxBench
 
+
+def save_unionbench(bench, path):
+    with open(path, "w", encoding="utf-8") as f:
+        validation_data = {}
+        for _type, subbench in bench.subbenches.items():
+            if _type == "COMPLEX":
+                validation_data["COMPLEX"] = subbench.schemas
+            else:
+                validation_data[_type] = subbench.dataset
+        json.dump(validation_data, f)
+
 def main(
     save_path: str,
     model: str,
@@ -14,6 +25,7 @@ def main(
     subset: bool = True, 
     test_category: str = "all",
     max_schema_length: int = -1,
+    valid_data_save_path: str = None,
     debug: bool = False,
 ):
     cl = codelinker.CodeLinker(codelinker.CodeLinkerConfig.from_toml(os.environ.get("CODELINKER_CONFIG", "private.toml")))
@@ -30,6 +42,8 @@ def main(
             return await cl.exec(messages=messages, model=model, completions_kwargs={"temperature": temperature, "seed": seed, "max_tokens": 2048})
 
     bench = UnionSyntaxBench(n_shots=n, subset=subset, test_category=test_category, max_schema_length=max_schema_length, debug=debug)
+    if valid_data_save_path is not None:
+        save_unionbench(bench, valid_data_save_path)
     # bench = MATHSyntaxBench(subset=False)
     # print(len(bench))
     # exit()
