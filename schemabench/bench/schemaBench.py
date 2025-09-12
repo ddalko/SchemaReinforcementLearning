@@ -274,7 +274,7 @@ CONSTRAINT_MAP = {
 CONSTRAINT_NUM = 5
 
 class CustomFormatBench(SchemaBench):
-    def __init__(self, subset: bool = True, max_schema_length: int = -1):
+    def __init__(self, subset: bool = True, subset_size: int = 100, max_schema_length: int = -1):
         super().__init__(_type="custom")
 
         self.dataset = []
@@ -320,7 +320,7 @@ class CustomFormatBench(SchemaBench):
             random.seed(int(os.environ.get("BENCHMARK_SUBSET_SEED", 42)))
             if max_schema_length > 0:
                 self.dataset = [s for s in self.dataset if len(json.dumps(s['model_schema'])) <= max_schema_length]
-            self.dataset = random.sample(self.dataset, 100)
+            self.dataset = random.sample(self.dataset, subset_size)
     
     def __len__(self):
         return len(self.dataset)
@@ -345,7 +345,7 @@ class CustomFormatBench(SchemaBench):
         return q
 
 class TranslationBench(BaseSyntaxBench):
-    def __init__(self, subset: bool = True, max_schema_length: int = -1):
+    def __init__(self, subset: bool = True, subset_size: int = 100, max_schema_length: int = -1):
         super().__init__(None, 0)
 
         self.dataset = []
@@ -363,7 +363,7 @@ class TranslationBench(BaseSyntaxBench):
             random.seed(int(os.environ.get("BENCHMARK_SUBSET_SEED", 42)))
             if max_schema_length > 0:
                 self.dataset = [s for s in self.dataset if len(json.dumps(s['model_schema'])) <= max_schema_length]
-            self.dataset = random.sample(self.dataset, 100)
+            self.dataset = random.sample(self.dataset, subset_size)
         
         self.json_parser = self.parser.get("CodeBlockJsonParser")
     
