@@ -1,3 +1,4 @@
+import fire
 import json
 import re
 from typing import Any, Set
@@ -86,36 +87,67 @@ def render_messages_for_gpt2(messages):
     text = "".join(parts)
     return text, segments
 
-data_p = "train/data/mix_train.json"
-with open(data_p, "r") as jfd:
-    data = json.load(jfd)
+def convert_valid_compatible(schema: dict) -> dict:
+    """
+    1. "text": chat template 으로 구성
+    content = 'Please generate a valid json object according to the following schema:\n\n```json\n{schema["model_schema"]}```'
+    messages = [{'role': 'user', 'content': content}]
+    2. "question_type": ["COMPLEX", "CUSTOM", "ESCAPE"] 중 하나
+    3. 나머지 데이터 그대로 살림.
+    """
+    chat_template_data = []
+    for question_type, data in schema.items():
+        for item in data:
+            json_schema = item if question_type == 'COMPLEX' else item['model_schema']
+            content = f'Please generate a valid json object according to the following schema:\n\n```json\n{json_schema}```'
+            temp = {
+                'messages': [{'role': 'user', 'content': content}],
+                'question_type': question_type,
+            }
+            if question_type != 'COMPLEX':
+                temp.update({
+                    'verify_schema': item['verify_schema'],
+                })
+            chat_template_data.append(temp)
+    return chat_template_data
 
-preprocessed_data = []
-data = [item for item in data if '```json\n{\"$schema' in item['messages'][1]['content']]
-for i in tqdm(range(len(data)), desc="Preprocessing dataset"):
-    messages = data[i]["messages"]
-    text, segs = render_messages_for_gpt2(messages)
-    text = re.sub(r'(?m)^### System:\s*(\r?\n)*', '', text, count=1)
+def main(
+    data_path: str,
+    filtered_data_save_path: str,
+    max_token_length: int = 1024,
+):
+    with open(data_path, "r") as jfd:
+        data = json.load(jfd)
 
-    schema_json = extract_schema_json(text)
-    if not schema_json:
-        continue
-    gt = json.loads(text[segs[2][0]:segs[2][1]])
-    minimal = project_schema_to_gt(schema_json, gt)
-    text = replace_first_json_codeblock(text, minimal)
+    preprocessed_data = []
+    data = [item for item in data if '```json\n{\"$schema' in item['messages'][1]['content']]
+    for i in tqdm(range(len(data)), desc="Preprocessing dataset"):
+        messages = data[i]["messages"]
+        text, segs = render_messages_for_gpt2(messages)
+        text = re.sub(r'(?m)^### System:\s*(\r?\n)*', '', text, count=1)
 
-    tokens = tokenizer(text, add_special_tokens=False, return_attention_mask=False, return_token_type_ids=False)
-    tokens['input_ids'].append(EOS)
+        schema_json = extract_schema_json(text)
+        if not schema_json:
+            continue
+        gt = json.loads(text[segs[2][0]:segs[2][1]])
+        minimal = project_schema_to_gt(schema_json, gt)
+        text = replace_first_json_codeblock(text, minimal)
 
-    if len(tokens['input_ids']) > 1024:
-        continue
+        tokens = tokenizer(text, add_special_tokens=False, return_attention_mask=False, return_token_type_ids=False)
+        tokens['input_ids'].append(EOS)
 
-    cut_point = text.find('### Assistant')
-    prompt = text[:cut_point].rstrip() + '\n'
+        if len(tokens['input_ids']) > max_token_length:
+            continue
 
-    preprocessed_data.append({"text": text, "prompt": prompt})
+        cut_point = text.find('### Assistant')
+        prompt = text[:cut_point].rstrip() + '\n'
 
-filtered_data_p = "train/data/chat_templated_jsonschema_dataset_max1024.json"
-print(f"Filtered {len(preprocessed_data)} samples from {len(data)}")
-with open(filtered_data_p, "w", encoding="utf-8") as f:
-    json.dump(preprocessed_data, f, ensure_ascii=False, indent=2)
+        tmp = {"text": text, "prompt": prompt, 'gt_json': gt}
+        preprocessed_data.append(tmp)
+
+    print(f"Filtered {len(preprocessed_data)} samples from {len(data)}")
+    with open(filtered_data_save_path, "w", encoding="utf-8") as f:
+        json.dump(preprocessed_data, f, ensure_ascii=False, indent=2)
+
+if __name__ == "__main__":
+    fire.Fire(main)
