@@ -139,10 +139,11 @@ def main(
         if len(tokens['input_ids']) > max_token_length:
             continue
 
-        cut_point = text.find('### Assistant')
-        prompt = text[:cut_point].rstrip() + '\n'
+        assistant_prefix = '### Assistant:\n'
+        cut_point = text.find(assistant_prefix) + len(assistant_prefix)
+        prompt = text[:cut_point].rstrip()
 
-        tmp = {"text": text, "prompt": prompt, 'gt_json': gt}
+        tmp = {"text": text, "prompt": prompt}
         preprocessed_data.append(tmp)
 
     print(f"Filtered {len(preprocessed_data)} samples from {len(data)}")
